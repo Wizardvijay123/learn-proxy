@@ -1,0 +1,2 @@
+[HTTP] 2025-11-23T02:55:41.978Z - GET http://example.com/ UA=curl/8.5.0
+[CONNECT] 2025-11-23T02:57:07.410Z - httpbin.org:443
