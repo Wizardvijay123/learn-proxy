@@ -1,7 +1,6 @@
 // backend/src/firewall/index.js
-import {
-  listRules
-} from "./store.js";
+import { listRules } from "./store.js";
+import logger from "../logging/logger.js";
 
 // Extract IP + Host + Port
 function getReqInfo(req) {
@@ -21,12 +20,29 @@ export function firewallMiddleware(req, res, next) {
   const info = getReqInfo(req);
   const rules = listRules();
 
+  // Log incoming traffic
+  logger.logIncoming({
+    method: req.method,
+    path: req.originalUrl,
+    ip: info.ip,
+    host: info.host,
+    port: info.port,
+  });
+
   // Apply rules
   for (const r of rules) {
     if (!r.enabled) continue;
 
     // block-ip
     if (r.type === "block-ip" && info.ip === r.value) {
+      logger.logRuleHit({
+        ruleId: r.id,
+        ruleType: r.type,
+        ruleValue: r.value,
+        ip: info.ip,
+        path: req.originalUrl,
+      });
+
       return res.status(403).json({
         ok: false,
         reason: `Blocked IP: ${r.value}`,
@@ -35,13 +51,21 @@ export function firewallMiddleware(req, res, next) {
 
     // block-port
     if (r.type === "block-port" && String(info.port) === String(r.value)) {
+      logger.logRuleHit({
+        ruleId: r.id,
+        ruleType: r.type,
+        ruleValue: r.value,
+        ip: info.ip,
+        path: req.originalUrl,
+      });
+
       return res.status(403).json({
         ok: false,
         reason: `Blocked Port: ${r.value}`,
       });
     }
 
-    // allow-only (deny everything not on list)
+    // allow-only
     if (r.type === "allow-only") {
       let allowed = Array.isArray(r.value)
         ? r.value
@@ -52,6 +76,14 @@ export function firewallMiddleware(req, res, next) {
         !allowed.includes(info.host) &&
         !allowed.includes(String(info.port))
       ) {
+        logger.logRuleHit({
+          ruleId: r.id,
+          ruleType: r.type,
+          ruleValue: r.value,
+          ip: info.ip,
+          path: req.originalUrl,
+        });
+
         return res.status(403).json({
           ok: false,
           reason: "Not in allow-only rule",

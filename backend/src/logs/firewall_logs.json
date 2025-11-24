@@ -1,0 +1,2 @@
+{"id":"1763959659126-ncdihu","ts":"2025-11-24T04:47:39.126Z","type":"incoming-request","payload":{"method":"POST","path":"/ssl/toggle","ip":"::1","host":"localhost:8080"}}
+{"id":"1763959659127-by7nlp","ts":"2025-11-24T04:47:39.127Z","type":"ssl-toggle","payload":{"action":"enabled","by":"user"}}

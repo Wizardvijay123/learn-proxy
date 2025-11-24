@@ -1,5 +1,6 @@
 // backend/src/dns/dnsRoutes.js
 import express from "express";
+import logger from "../logging/logger.js";
 import { dnsRecords, addRecord, deleteRecord } from "./dnsStore.js";
 
 const router = express.Router();
@@ -10,6 +11,14 @@ router.get("/lookup", (req, res) => {
   if (!domain) return res.status(400).json({ error: "Domain is required" });
 
   const record = dnsRecords[domain];
+  // Log lookup attempt
+  logger.logDnsLookup({
+    domain,
+    found: Boolean(record),
+    ip: record || null,
+    requester: req.ip,
+  });
+
   if (!record) return res.status(404).json({ error: "not found" });
 
   res.json(record);
@@ -26,6 +35,14 @@ router.post("/add", (req, res) => {
   if (!domain || !ip) return res.status(400).json({ error: "domain & ip required" });
 
   const record = addRecord(domain, ip);
+  // Log DNS addition
+  logger.logDnsLookup({
+    domain,
+    ip,
+    action: "record-added",
+    by: req.ip,
+  });
+
   res.json({ success: true, record });
 });
 
@@ -35,6 +52,13 @@ router.delete("/:domain", (req, res) => {
   if (!domain) return res.status(400).json({ error: "domain required" });
 
   const result = deleteRecord(domain);
+  // Log deletion attempt
+  logger.logDnsLookup({
+    domain,
+    action: result ? "record-deleted" : "delete-failed",
+    by: req.ip,
+  });
+
   if (!result) return res.status(404).json({ error: "not found" });
 
   res.json({ success: true, domain });
